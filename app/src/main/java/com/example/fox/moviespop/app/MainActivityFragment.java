@@ -1,6 +1,7 @@
 package com.example.fox.moviespop.app;
 
 import android.content.Context;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
@@ -42,6 +43,13 @@ public class MainActivityFragment extends Fragment {
         return rootView;
     }
 
+    public class FetchMoviesPopTask extends AsyncTask<Void,Void,Void>{
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            return null;
+        }
+    }
     public class ImageAdapter extends BaseAdapter{
         private Context context;
         public ImageAdapter(Context context) {
