@@ -1,6 +1,7 @@
 package com.example.fox.moviespop.app;
 
 import android.content.Context;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
@@ -12,6 +13,12 @@ import android.widget.ImageView;
 
 import com.squareup.picasso.Picasso;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 
 /**
@@ -42,6 +49,58 @@ public class MainActivityFragment extends Fragment {
         return rootView;
     }
 
+    public class FetchMoviesPopTask extends AsyncTask<Void,Void,Void>{
+        private final String LOG_TAG = FetchMoviesPopTask.class.getSimpleName();
+        @Override
+        protected Void doInBackground(Void... params) {
+            HttpURLConnection urlConnection = null;
+            BufferedReader reader = null;
+
+            String forecastJsonStr = null;
+            try {
+                URL url = new URL("http://api.themoviedb.org/3/discover/movie" +
+                        "?sort_by=popularity.desc&api_key=f2b1422d34675e8f82847ae21c7e9c31");
+                urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestMethod("GET");
+                urlConnection.connect();
+
+                InputStream inputStream =urlConnection.getInputStream();
+                StringBuffer buffer = new StringBuffer();
+                if(inputStream==null){
+                    forecastJsonStr = null;
+                }
+                reader = new BufferedReader(new InputStreamReader(inputStream));
+
+                String line;
+                while ((line=reader.readLine())!=null){
+                    buffer.append(line+"\n");
+                }
+
+                if(buffer.length()==0){
+                    return null;
+                }
+
+                forecastJsonStr = buffer.toString();
+
+            } catch (java.io.IOException e) {
+                e.printStackTrace();
+            }finally {
+                if(urlConnection!=null){
+                    urlConnection.disconnect();
+                }
+                if(reader!=null){
+                    try {
+                        reader.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+
+            return null;
+        }
+    }
     public class ImageAdapter extends BaseAdapter{
         private Context context;
         public ImageAdapter(Context context) {
