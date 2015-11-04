@@ -1,10 +1,15 @@
 package com.example.fox.moviespop.app;
 
 import android.content.Context;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -12,6 +17,10 @@ import android.widget.GridView;
 import android.widget.ImageView;
 
 import com.squareup.picasso.Picasso;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -28,10 +37,28 @@ public class MainActivityFragment extends Fragment {
 
     private ArrayList<String> urls=new ArrayList<>();
     private final String baseUrl="http://www.jycoder.com/json/Image/";
-
+    //private ArrayAdapter<String> mForecastAdapter;
     public MainActivityFragment() {
     }
 
+    @Override
+    public void onCreate(Bundle savedInstanceState){
+        super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
+    }
+    @Override
+    public void onCreateOptionsMenu(Menu menu,MenuInflater inflater){
+        inflater.inflate(R.menu.forecastfragment, menu);
+    }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item){
+        int id = item.getItemId();
+        if(id== R.id.action_refresh){
+            FetchMoviesPopTask moviesPopTask = new FetchMoviesPopTask();
+            moviesPopTask.execute("popularity.desc");
+        }
+        return super.onOptionsItemSelected(item);
+    }
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -40,26 +67,80 @@ public class MainActivityFragment extends Fragment {
             urls.add(baseUrl+i+".jpg");
         }
 
+        Log.v("test","moviesarry test test test test");
+        //List<String> weekForecast = new ArrayList<String>(Arrays.asList(url_path));
+        //Log.v("TEST DEBUG","msg" + "11111");
+        //mForecastAdapter = new ImageAdapter(getActivity(),R.layout.forecast_image_item, weekForecast);
+        //Log.v("TEST DEBUG","msg" +"22222");
         Context context = getActivity().getApplicationContext();
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
         GridView gridView = (GridView) rootView.findViewById(R.id.gridview_forecast);
+        //ArrayAdapter<ImageView> imageAdapter = new ArrayAdapter<ImageView>(context,number);
         ImageAdapter imageAdapter = new ImageAdapter(context);
+        //Log.v("TEST DEBUG","msg" +"333333");
         gridView.setAdapter(imageAdapter);
-
         return rootView;
     }
 
-    public class FetchMoviesPopTask extends AsyncTask<Void,Void,Void>{
+    public class FetchMoviesPopTask extends AsyncTask<String,Void,String[]>{
         private final String LOG_TAG = FetchMoviesPopTask.class.getSimpleName();
+
+        private String[] getMoviesDataFromJson(String forecastJsonStr,int numMovies)
+            throws JSONException {
+
+            final String OWM_RESULT = "results";
+            final String OWM_BACKGROUND_PATH = "backdrop_path";
+            final String OWM_ORIGIN_TITLE = "original_title";
+            final String OWM_POSTER_PATH = "poster_path";
+            final String OWM_ID = "id";
+            final String OWM_OVERVIEW = "overview";
+
+            //Log.v(LOG_TAG,"forecast entry here ");
+            //Log.v(LOG_TAG,"moviesarry.length :" + String.valueOf(2));
+            JSONObject forecastJson = new JSONObject(forecastJsonStr);
+            //Log.v(LOG_TAG,"moviesarry.length :" + String.valueOf(3));
+            JSONArray moviesArray = forecastJson.getJSONArray(OWM_RESULT);
+            //Log.v(LOG_TAG,"moviesarry.length :" + String.valueOf(4));
+            String[] resultStr = new String[numMovies];
+            //Log.v(LOG_TAG,"moviesarry.length :" + String.valueOf(moviesArray.length()));
+            for(int i=0;i<moviesArray.length();i++){
+                String backdrop_path;
+
+                JSONObject moviesForecast = moviesArray.getJSONObject(i);
+                backdrop_path = moviesForecast.getString(OWM_BACKGROUND_PATH);
+                resultStr[i]=backdrop_path;
+                //Log.v(LOG_TAG,"forecast entry : "+backdrop_path);
+            }
+
+            for(String s:resultStr){
+               // Log.v(LOG_TAG,"forecast entry : "+s);
+            }
+            return resultStr;
+        }
+
         @Override
-        protected Void doInBackground(Void... params) {
+        protected String[] doInBackground(String... params) {
+            if (params.length==0){
+                return null;
+            }
             HttpURLConnection urlConnection = null;
             BufferedReader reader = null;
 
             String forecastJsonStr = null;
+            int numMovies = 20;
             try {
-                URL url = new URL("http://api.themoviedb.org/3/discover/movie" +
-                        "?sort_by=popularity.desc&api_key=f2b1422d34675e8f82847ae21c7e9c31");
+                final String FORECAST_BASE_URL= "http://api.themoviedb.org/3/discover/movie?";
+                final String QUERY_PARAM = "sort_by";
+                final String API_KEY = "api_key";
+                Uri builtUri = null;
+                builtUri =Uri.parse(FORECAST_BASE_URL).buildUpon()
+                        .appendQueryParameter(QUERY_PARAM,params[0])
+                        .appendQueryParameter(API_KEY,BuildConfig.OPEN_WEATHER_MAP_API_KEY)
+                        .build();
+                //URL url = new URL("http://api.themoviedb.org/3/discover/movie" +
+                      //  "?sort_by=popularity.desc&api_key=f2b1422d34675e8f82847ae21c7e9c31");
+                URL url = new URL(builtUri.toString());
+                Log.v(LOG_TAG,"BUILTURI  "+ builtUri.toString());
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("GET");
                 urlConnection.connect();
@@ -81,7 +162,7 @@ public class MainActivityFragment extends Fragment {
                 }
 
                 forecastJsonStr = buffer.toString();
-
+                Log.v(LOG_TAG,"forecastTask"+forecastJsonStr);
             } catch (java.io.IOException e) {
                 e.printStackTrace();
             }finally {
@@ -97,28 +178,45 @@ public class MainActivityFragment extends Fragment {
                 }
             }
 
+            try {
+                Log.v(LOG_TAG,"moviesarry " + forecastJsonStr);
+                return getMoviesDataFromJson(forecastJsonStr,numMovies);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
 
             return null;
         }
+
+        @Override
+        protected void onPostExecute(String[] result) {
+            if(result != null){
+               //mForecastAdapter.clear();
+            }
+            for( String moviesForecastStr : result){
+               // mForecastAdapter.add(moviesForecastStr);
+
+            }
+        }
+
     }
+
     public class ImageAdapter extends BaseAdapter{
         private Context context;
         public ImageAdapter(Context context) {
-
             this.context = context;
         }
 
         @Override
         public int getCount() {
-
             return urls.size();
         }
 
         @Override
         public Object getItem(int position) {
-
             return null;
         }
+
         @Override
         public long getItemId(int position) {
             return 0;
@@ -128,7 +226,7 @@ public class MainActivityFragment extends Fragment {
         public View getView(int position, View convertView, ViewGroup parent) {
             ImageView imageView = new ImageView(context);
             Picasso.with(context)
-                    .load("http://www.jycoder.com/json/Image/1.jpg")
+                   .load("http://www.jycoder.com/json/Image/1.jpg")
                     .into(imageView);
 
            imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
@@ -136,6 +234,7 @@ public class MainActivityFragment extends Fragment {
 
 
             return imageView;
+            //return null;
         }
     }
 }
