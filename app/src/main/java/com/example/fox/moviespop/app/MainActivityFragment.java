@@ -12,6 +12,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
@@ -29,6 +30,8 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -37,7 +40,7 @@ public class MainActivityFragment extends Fragment {
 
     private ArrayList<String> urls=new ArrayList<>();
     private final String baseUrl="http://www.jycoder.com/json/Image/";
-    //private ArrayAdapter<String> mForecastAdapter;
+    private ArrayAdapter<String> mForecastAdapter;
     public MainActivityFragment() {
     }
 
@@ -67,18 +70,26 @@ public class MainActivityFragment extends Fragment {
             urls.add(baseUrl+i+".jpg");
         }
 
-        Log.v("test","moviesarry test test test test");
-        //List<String> weekForecast = new ArrayList<String>(Arrays.asList(url_path));
+        String[] url_path={
+                "http://www.jycoder.com/json/Image/1.jpg",
+                "http://www.jycoder.com/json/Image/1.jpg",
+                "http://www.jycoder.com/json/Image/1.jpg",
+                "http://www.jycoder.com/json/Image/1.jpg",
+                "http://www.jycoder.com/json/Image/1.jpg"
+        };
+
+        List<String> weekForecast = new ArrayList<String>(Arrays.asList(url_path));
         //Log.v("TEST DEBUG","msg" + "11111");
-        //mForecastAdapter = new ImageAdapter(getActivity(),R.layout.forecast_image_item, weekForecast);
+        Context context = getActivity();
+        mForecastAdapter = new TestArrayAdapter(context,0, weekForecast);
         //Log.v("TEST DEBUG","msg" +"22222");
-        Context context = getActivity().getApplicationContext();
+
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
         GridView gridView = (GridView) rootView.findViewById(R.id.gridview_forecast);
-        //ArrayAdapter<ImageView> imageAdapter = new ArrayAdapter<ImageView>(context,number);
-        ImageAdapter imageAdapter = new ImageAdapter(context);
-        //Log.v("TEST DEBUG","msg" +"333333");
-        gridView.setAdapter(imageAdapter);
+        //ImageAdapter imageAdapter = new ImageAdapter(context);
+        //gridView.setAdapter(imageAdapter);
+        Log.v("test debug","testdebug " + mForecastAdapter.toString());
+        gridView.setAdapter(mForecastAdapter);
         return rootView;
     }
 
@@ -105,10 +116,11 @@ public class MainActivityFragment extends Fragment {
             //Log.v(LOG_TAG,"moviesarry.length :" + String.valueOf(moviesArray.length()));
             for(int i=0;i<moviesArray.length();i++){
                 String backdrop_path;
+                String poster_path;
 
                 JSONObject moviesForecast = moviesArray.getJSONObject(i);
-                backdrop_path = moviesForecast.getString(OWM_BACKGROUND_PATH);
-                resultStr[i]=backdrop_path;
+                poster_path = moviesForecast.getString(OWM_POSTER_PATH);
+                resultStr[i]=poster_path;
                 //Log.v(LOG_TAG,"forecast entry : "+backdrop_path);
             }
 
@@ -191,16 +203,55 @@ public class MainActivityFragment extends Fragment {
         @Override
         protected void onPostExecute(String[] result) {
             if(result != null){
-               //mForecastAdapter.clear();
+               mForecastAdapter.clear();
             }
             for( String moviesForecastStr : result){
-               // mForecastAdapter.add(moviesForecastStr);
+               mForecastAdapter.add(moviesForecastStr);
 
             }
         }
 
     }
 
+    public class TestArrayAdapter extends ArrayAdapter<String>{
+        private int resource;
+        Context context;
+        List<String> objects;
+        public TestArrayAdapter(Context context, int resource, List<String> objects) {
+
+            super(context, 0, objects);
+
+            Log.v("test debug", "testdebug 11111");
+            this.resource = resource;
+            this.context =context;
+            this.objects = objects;
+        }
+
+        @Override
+        public int getCount() {
+            return super.getCount();
+        }
+
+        @Override
+        public String getItem(int position) {
+            return super.getItem(position);
+        }
+
+        public View getView(int position, View convertView, ViewGroup parent) {
+            String url = "http://image.tmdb.org/t/p/w185/";
+
+            ImageView imageView = new ImageView(context);
+            Log.v("1111111","objectsdebug:   "+objects.get(position).toString());
+            Picasso.with(context)
+                    .load(url+objects.get(position).toString())
+                    .into(imageView);
+
+            imageView.setScaleType(ImageView.ScaleType.FIT_XY);
+            imageView.setLayoutParams(new GridView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,800));
+            return imageView;
+        }
+
+    }
     public class ImageAdapter extends BaseAdapter{
         private Context context;
         public ImageAdapter(Context context) {
@@ -229,8 +280,8 @@ public class MainActivityFragment extends Fragment {
                    .load("http://www.jycoder.com/json/Image/1.jpg")
                     .into(imageView);
 
-           imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            //imageView.setLayoutParams(new GridView.LayoutParams(280, 280));
+            imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            //imageView.setLayoutParams(new GridView.LayoutParams(480,800));
 
 
             return imageView;
