@@ -1,6 +1,7 @@
 package com.example.fox.moviespop.app;
 
 import android.content.Context;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -12,12 +13,9 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.BaseAdapter;
 import android.widget.GridView;
-import android.widget.ImageView;
-
-import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -40,7 +38,13 @@ public class MainActivityFragment extends Fragment {
 
     private ArrayList<String> urls=new ArrayList<>();
     private final String baseUrl="http://www.jycoder.com/json/Image/";
-    private ArrayAdapter<String> mForecastAdapter;
+    private ArrayAdapter<MoviesInfo> mForecastAdapter;
+    private MoviesInfo[] moviesInfo ={
+            new MoviesInfo(),new MoviesInfo(),new MoviesInfo(),new MoviesInfo(),
+            new MoviesInfo(),new MoviesInfo(),new MoviesInfo(),new MoviesInfo(),
+            new MoviesInfo(),new MoviesInfo(),new MoviesInfo(),new MoviesInfo(),
+            new MoviesInfo(),new MoviesInfo(),new MoviesInfo(),new MoviesInfo(),
+            new MoviesInfo(),new MoviesInfo(),new MoviesInfo(),new MoviesInfo()};
     public MainActivityFragment() {
     }
 
@@ -78,25 +82,36 @@ public class MainActivityFragment extends Fragment {
                 "http://www.jycoder.com/json/Image/1.jpg"
         };
 
-        List<String> weekForecast = new ArrayList<String>(Arrays.asList(url_path));
+        List<MoviesInfo> weekForecast = new ArrayList<MoviesInfo>(Arrays.asList(moviesInfo));
         //Log.v("TEST DEBUG","msg" + "11111");
         Context context = getActivity();
-        mForecastAdapter = new TestArrayAdapter(context,0, weekForecast);
+        mForecastAdapter = new ImageArrayAdapter(context,0, weekForecast);
         //Log.v("TEST DEBUG","msg" +"22222");
 
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
         GridView gridView = (GridView) rootView.findViewById(R.id.gridview_forecast);
-        //ImageAdapter imageAdapter = new ImageAdapter(context);
-        //gridView.setAdapter(imageAdapter);
-        Log.v("test debug","testdebug " + mForecastAdapter.toString());
+
         gridView.setAdapter(mForecastAdapter);
+        gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+             MoviesInfo forecast  = new MoviesInfo();
+             forecast = mForecastAdapter.getItem(position);
+                String foremessge = forecast.original_title;
+               // Toast.makeText(getActivity(),foremsg,Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(getActivity(),DetialActivity.class)
+                        .putExtra(Intent.EXTRA_TEXT,foremessge);
+                startActivity(intent);
+            }
+        });
+
         return rootView;
     }
 
-    public class FetchMoviesPopTask extends AsyncTask<String,Void,String[]>{
+    public class FetchMoviesPopTask extends AsyncTask<String,Void,MoviesInfo[]>{
         private final String LOG_TAG = FetchMoviesPopTask.class.getSimpleName();
 
-        private String[] getMoviesDataFromJson(String forecastJsonStr,int numMovies)
+        private MoviesInfo[] getMoviesDataFromJson(String forecastJsonStr)
             throws JSONException {
 
             final String OWM_RESULT = "results";
@@ -105,33 +120,43 @@ public class MainActivityFragment extends Fragment {
             final String OWM_POSTER_PATH = "poster_path";
             final String OWM_ID = "id";
             final String OWM_OVERVIEW = "overview";
-
+            //MoviesInfo[] moviesInfo = new MoviesInfo[numMovies];
             //Log.v(LOG_TAG,"forecast entry here ");
             //Log.v(LOG_TAG,"moviesarry.length :" + String.valueOf(2));
             JSONObject forecastJson = new JSONObject(forecastJsonStr);
             //Log.v(LOG_TAG,"moviesarry.length :" + String.valueOf(3));
             JSONArray moviesArray = forecastJson.getJSONArray(OWM_RESULT);
             //Log.v(LOG_TAG,"moviesarry.length :" + String.valueOf(4));
-            String[] resultStr = new String[numMovies];
+           // String[] resultStr = new String[numMovies];
             //Log.v(LOG_TAG,"moviesarry.length :" + String.valueOf(moviesArray.length()));
-            for(int i=0;i<moviesArray.length();i++){
+            for (int i = 0; i < moviesArray.length(); i++) {
                 String backdrop_path;
                 String poster_path;
-
+                String overview;
+                String id;
+                String original_title;
                 JSONObject moviesForecast = moviesArray.getJSONObject(i);
                 poster_path = moviesForecast.getString(OWM_POSTER_PATH);
-                resultStr[i]=poster_path;
+                backdrop_path = moviesForecast.getString(OWM_BACKGROUND_PATH);
+                id = moviesForecast.getString(OWM_ID);
+                original_title =moviesForecast.getString(OWM_ORIGIN_TITLE);
+                overview = moviesForecast.getString(OWM_OVERVIEW);
+                //resultStr[i] = poster_path;
+                moviesInfo[i].poster_path=poster_path;
+
+                moviesInfo[i].backdrop_path=backdrop_path;
+                moviesInfo[i].id=id;
+                moviesInfo[i].overview=overview;
+                moviesInfo[i].original_title=original_title;
                 //Log.v(LOG_TAG,"forecast entry : "+backdrop_path);
             }
 
-            for(String s:resultStr){
-               // Log.v(LOG_TAG,"forecast entry : "+s);
-            }
-            return resultStr;
+
+            return moviesInfo;
         }
 
         @Override
-        protected String[] doInBackground(String... params) {
+        protected MoviesInfo[] doInBackground(String... params) {
             if (params.length==0){
                 return null;
             }
@@ -191,8 +216,8 @@ public class MainActivityFragment extends Fragment {
             }
 
             try {
-                Log.v(LOG_TAG,"moviesarry " + forecastJsonStr);
-                return getMoviesDataFromJson(forecastJsonStr,numMovies);
+                Log.v(LOG_TAG, "moviesarry " + forecastJsonStr);
+                return getMoviesDataFromJson(forecastJsonStr);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -201,91 +226,15 @@ public class MainActivityFragment extends Fragment {
         }
 
         @Override
-        protected void onPostExecute(String[] result) {
-            if(result != null){
+        protected void onPostExecute(MoviesInfo[] moviesInfo) {
+            if(moviesInfo != null){
                mForecastAdapter.clear();
             }
-            for( String moviesForecastStr : result){
-               mForecastAdapter.add(moviesForecastStr);
+            for( MoviesInfo moviesForecast : moviesInfo){
+               mForecastAdapter.add(moviesForecast);
 
             }
         }
 
-    }
-
-    public class TestArrayAdapter extends ArrayAdapter<String>{
-        private int resource;
-        Context context;
-        List<String> objects;
-        public TestArrayAdapter(Context context, int resource, List<String> objects) {
-
-            super(context, 0, objects);
-
-            Log.v("test debug", "testdebug 11111");
-            this.resource = resource;
-            this.context =context;
-            this.objects = objects;
-        }
-
-        @Override
-        public int getCount() {
-            return super.getCount();
-        }
-
-        @Override
-        public String getItem(int position) {
-            return super.getItem(position);
-        }
-
-        public View getView(int position, View convertView, ViewGroup parent) {
-            String url = "http://image.tmdb.org/t/p/w185/";
-
-            ImageView imageView = new ImageView(context);
-            Log.v("1111111","objectsdebug:   "+objects.get(position).toString());
-            Picasso.with(context)
-                    .load(url+objects.get(position).toString())
-                    .into(imageView);
-
-            imageView.setScaleType(ImageView.ScaleType.FIT_XY);
-            imageView.setLayoutParams(new GridView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,800));
-            return imageView;
-        }
-
-    }
-    public class ImageAdapter extends BaseAdapter{
-        private Context context;
-        public ImageAdapter(Context context) {
-            this.context = context;
-        }
-
-        @Override
-        public int getCount() {
-            return urls.size();
-        }
-
-        @Override
-        public Object getItem(int position) {
-            return null;
-        }
-
-        @Override
-        public long getItemId(int position) {
-            return 0;
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            ImageView imageView = new ImageView(context);
-            Picasso.with(context)
-                   .load("http://www.jycoder.com/json/Image/1.jpg")
-                    .into(imageView);
-
-            imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            //imageView.setLayoutParams(new GridView.LayoutParams(480,800));
-
-
-            return imageView;
-            //return null;
-        }
     }
 }
