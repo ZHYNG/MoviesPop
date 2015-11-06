@@ -2,9 +2,11 @@ package com.example.fox.moviespop.app;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -37,7 +39,6 @@ import java.util.List;
 public class MainActivityFragment extends Fragment {
 
     private ArrayList<String> urls=new ArrayList<>();
-    private final String baseUrl="http://www.jycoder.com/json/Image/";
     private ArrayAdapter<MoviesInfo> mForecastAdapter;
     private MoviesInfo[] moviesInfo ={
             new MoviesInfo(),new MoviesInfo(),new MoviesInfo(),new MoviesInfo(),
@@ -61,26 +62,18 @@ public class MainActivityFragment extends Fragment {
     public boolean onOptionsItemSelected(MenuItem item){
         int id = item.getItemId();
         if(id== R.id.action_refresh){
-            FetchMoviesPopTask moviesPopTask = new FetchMoviesPopTask();
-            moviesPopTask.execute("popularity.desc");
+            updateMoviesbyPopular();
+            return true;
+        }
+        if(id== R.id.vote_average){
+            updateMoviesByVote();
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-
-        for(int i=1;i<=18;i++){
-            urls.add(baseUrl+i+".jpg");
-        }
-
-        String[] url_path={
-                "http://www.jycoder.com/json/Image/1.jpg",
-                "http://www.jycoder.com/json/Image/1.jpg",
-                "http://www.jycoder.com/json/Image/1.jpg",
-                "http://www.jycoder.com/json/Image/1.jpg",
-                "http://www.jycoder.com/json/Image/1.jpg"
-        };
 
         List<MoviesInfo> weekForecast = new ArrayList<MoviesInfo>(Arrays.asList(moviesInfo));
         //Log.v("TEST DEBUG","msg" + "11111");
@@ -108,6 +101,25 @@ public class MainActivityFragment extends Fragment {
         return rootView;
     }
 
+    public void updateMoviesbyPopular(){
+        FetchMoviesPopTask moviesPopTask = new FetchMoviesPopTask();
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String sort = prefs.getString(getString(R.string.action_refresh_key),
+                getString(R.string.action_refresh_default));
+        moviesPopTask.execute(sort);
+    }
+    public void updateMoviesByVote(){
+        FetchMoviesPopTask moviesPopTask = new FetchMoviesPopTask();
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String sort = prefs.getString(getString(R.string.vote_average_key),
+                getString(R.string.vote_average_default));
+        moviesPopTask.execute(sort);
+    }
+    @Override
+    public void onStart(){
+        super.onStart();
+        updateMoviesbyPopular();
+    }
     public class FetchMoviesPopTask extends AsyncTask<String,Void,MoviesInfo[]>{
         private final String LOG_TAG = FetchMoviesPopTask.class.getSimpleName();
 

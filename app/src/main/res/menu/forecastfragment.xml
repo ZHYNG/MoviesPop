@@ -4,4 +4,7 @@
 <item android:id="@+id/action_refresh"
     android:title="@string/action_refresh"
     app:showAsAction = "never"></item>
+    <item android:id="@+id/vote_average"
+        android:title="vote average"
+        app:showAsAction = "never"></item>
 </menu>
